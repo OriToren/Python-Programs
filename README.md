@@ -6,3 +6,5 @@ Programs i write in python. with my very non elite knowledge il show how to use 
   import (names of libaries) #for example quadraics
 2)make sure that __init__.py is inside MyPackage
 3)open with pycharm The directory Where MyPackage is  (in my example this would be scripts)  and mark MyPackage (with rightclick) and mark as Source Roots #this step isnt required but recommend
+
+im hoping to keep making these in the future.
