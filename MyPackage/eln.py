@@ -1,0 +1,50 @@
+def ln(x):
+    if x<0:
+        return None
+    sum=0
+    # we will use a diffrent taylor series expansion from Math2.org .
+    # starts to diverge around x=400 but still remains fairly close until close to a 1000
+    for i in range(1,101):
+        if x==ePower(i):
+            return i
+    try:
+        if x>0.5:
+         for i in range(1,1000):
+             sum=sum+((x-1)**i/x**i)/i
+         return round(sum,5)
+    except(OverflowError):
+        return round(sum,5)
+    # we will use the classic taylor series expansion for ln(x)
+    for i in range(1,1000):
+        sum=sum+((x-1)**i / i )*(-1)**(i+1)
+    return round(sum,5)
+print(ln(3))
+
+
+
+def ePower(x):
+    # using ePower(ln(x)) == x breaks for some reason even tho for the same x ePower(x) works #fixed.
+    sum=0
+    mark=1
+    try:
+      for i in range(1000):
+           sum+=((x**i) / mark)
+           if i>=1:
+               mark*=i+1
+      if x>=0:
+        return round(sum,5)
+      else:
+        return round(sum,5)
+    except(OverflowError):
+         if x>=0:
+            return round(sum,5)
+def lnList(items):
+    for item in range(len(items)):
+        if isinstance(items[item],float,int) and items[item] > 0:
+         if ln(items[item]) != None:
+          items[item]=ln(items[item])
+         else:
+            return False
+        else:
+            return False
+    return items
