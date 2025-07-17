@@ -501,6 +501,25 @@ def Factors(a:float,b:float=None,c:float=None):
         if a < 0:
             return ((0, -1*abs(a ** (0.5)), rootcheck[-1]), (0, abs(a ** (0.5)), -1*rootcheck[-2]))
 
+
+def mullFunc(a: float, b: float = None, c: float = None,x:float=None):
+    backup=b
+    if isinstance(a, tuple):
+        if len(a) == 3:
+            temp = a
+            x=backup
+            a = temp[0]
+            b = temp[1]
+            c = temp[2]
+    try:
+        if _check(a, b, c) == False:
+            raise InvalidNumException()
+    except InvalidNumException as e:
+        print(e)
+        return
+    multipliedfunc = (a*x,b*x,c*x)
+    return multipliedfunc
+
 """
 Thank you for reading and potentially using my library in the future!!
 """
