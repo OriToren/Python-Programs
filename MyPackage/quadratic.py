@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
 """
 (Excuse language errors as english isn't my first language)
-The Purpose of this libary is to give accsess to multiple operations on quadratics functions. These can be written in two ways in order to work in for them to work with these methods:
-1) written in a tuple in the form (a,b,c) as to refrence ax^2 +bx + c and works for almost all methods until mentioned otherwise. for example Area((a,b,c))
-will need to write in the first input of the method, the method needs more than the function itself, no need to write b,c aswell in the other inputs.
-2) written Stright up inside the method as (a,b,c). works for almost all methods until mentioned otherwise. for example Area(a,b,c) works the same as the last Area example.
+The Purpose of this libary is to give accsess to multiple operations on quadratics functions.
+ These can be written in two ways in order to work in for them to work with these methods:
+1) written in a tuple in the form (a,b,c) as to refrence ax^2 +bx + c and works for almost all methods until mentioned otherwise. for example Roots((a,b,c))
+can be written in the first input of the method, the method needs  just the function itself, no need to write b,c aswell in the other inputs.
+2) written Stright up inside the method as (a,b,c) as to refrence ax^2 +bx +c aswell.
+ works for almost all methods until mentioned otherwise. for example Area(a,b,c) works the same as the last Area example.
 
 (all parameters who can be represented as floats can be inputted as ints as well)
+this is also my first library so try to excuse my methods names, the fact that it's a method only
+libary aswell and my  somewhat unprofessional descriptions to the functions.(if anyone sees this constructive criticism is welcome).
+
 """
 class quadraticExpection(Exception):
     pass
@@ -331,6 +336,21 @@ def Area(function:tuple,lowend:float,highend:float): #this is the defenite integ
     calcs=abs((a*highend**3)+(b*highend**2)+(c*highend)-((a*lowend**3)+(b*lowend**2)+(c*lowend)))
     return calcs
 def findY(a:float,b:float=None,c:float=None,x:float=None):
+    """
+    The purpose of this method is to calculate and return the y value of a function (a,b,c) at a given x.
+    Parameters:
+          a=x^2,function (float or tuple representing (a,b,c))
+          b=x (float or None with tuple option)
+          c=c (float or None with tuple option)
+          x=point x on the function we want to calc the y value of (float)
+    Returns:
+          -the y value in float
+    Examples:
+          >>> findY(1, -3, 2, 4)
+          6
+          >>> findY((1,0,-4),0)
+          -4
+    """
     backup=b
     if isinstance(a, tuple):
         if len(a) == 3:
@@ -347,6 +367,21 @@ def findY(a:float,b:float=None,c:float=None,x:float=None):
         return
     return ((a*x**2)+(b*x)+c)
 def tangentLine(a:float,b:float=None,c:float=None,x:float=None):
+    """
+    The purpose of this method is to return the function of a tangent line in a given function of the given x
+    Parameters:
+          a=x^2,function (float or tuple representing (a,b,c))
+          b=x (float or None with tuple option)
+          c=c (float or None with tuple option)
+          x=point x on the function we want to calculate the tangent line (float)
+    Returns:
+          -the function of the tangent line in the (a,b,c) format.
+    Examples:
+           >>> tangentLine(1, -3, 2, 1)
+           (0, -1.0, 2.0)
+           >>> tangentLine((1, -3, 2), 1)
+           (0, -1.0, 2.0)
+    """
     backup=b
     if isinstance(a, tuple):
         if len(a) == 3:
@@ -365,6 +400,29 @@ def tangentLine(a:float,b:float=None,c:float=None,x:float=None):
     slope=der[1]*x + der[2]
     return (0,slope,(-slope*x)+findY(a,b,c,x))
 def funcInfo(a:float,b:float=None,c:float=None):
+    """
+    The purpose of this method is to return information about a given function regarding its roots,y axis interception value,its derivative and its maximum/minimum point.
+    Parameters:
+          a=x^2,function (float or tuple representing (a,b,c))
+          b=x (float or None with tuple option)
+          c=c (float or None with tuple option)
+    Returns:
+          -the info mentioned in the description of the function in the form of a string and takes 5 lines.
+    Examples:
+        >>> print(funcInfo(1, -3, 2))
+        The function: (1, -3, 2) == 1x^2 +-3x +2
+        Roots:(2.0, 1.0)
+        y_intercept:2
+        function_derivative:(0, 2.0, -3) == 2.0x + -3
+        max/min point:{'x': 1.5, 'y': -0.25, 'type': 'minimum'}
+
+        >>> print(funcInfo((1, 2, 1)))
+        The function: (1, 2, 1) == 1x^2 +2x +1
+        Roots:(-1.0,)
+        y_intercept:1
+        function_derivative:(0, 2.0, 2) == 2.0x + 2
+        max/min point:{'x': -1.0, 'y': 0.0, 'type': 'minimum'}
+    """
     if isinstance(a, tuple):
         if len(a) == 3:
             temp = a
@@ -387,3 +445,62 @@ def funcInfo(a:float,b:float=None,c:float=None):
           f"function_derivative:{deri} == {deri[1]}x + {deri[2]}\n"
           f"max/min point:{externum}")
     return tostring
+def Factors(a:float,b:float=None,c:float=None):
+    """
+    The purpose of this method is to return the factors of a given function (a,b,c) if they exist in this format:
+    ((a,b,c),(d,e,f)) which represents (ax^2 +bx+c)(dx^2+ex+f) so essentially the two functions inside a tuple beside each-other.
+    #warning! this can return the roots in a very non elegent way as my (a,b,c) format lacks the ability to represent functions with outside multiplications
+    #such as constant*(a,b,c) see examples of this in examples
+    Parameters:
+          a=x^2,function (float or tuple representing (a,b,c))
+          b=x (float or None with tuple option)
+          c=c (float or None with tuple option)
+    Returns:
+          -if no real Factors exist returns None
+          -if a=0 returns the function itself as its the factor of itself (technically)
+          -if the factors are the same returns ((f(X),f(X))
+          -if the factors are different returns ((f(x),g(x))
+    Examples:
+          >>> Factors(1, -3, 2)
+          ((0, 1.0, -2.0), (0, 1.0, -1.0))
+
+          >>> Factors((1, 2, 1))
+          ((0, 1.0, -1.0), (0, 1.0, -1.0))
+
+          >>> Factors(1, 1, 1)
+          None
+          #non elgent example
+          >>>Factors(6,30,6.25)
+          ((0, 2.449489742783178, 4.7821773229381925), (0, 2.449489742783178, 0.21782267706180777))
+    """
+    if isinstance(a,tuple):
+       if len(a) == 3:
+         temp=a
+         a=temp[0]
+         b=temp[1]
+         c=temp[2]
+    try:
+        if _check(a, b, c) == False:
+            raise InvalidNumException()
+    except InvalidNumException as e:
+        print(e)
+        return
+    rootcheck=Roots(a,b,c)
+    if a==0:
+        return (a,b,c)
+    if rootcheck==None:
+        return None
+    if len(rootcheck) == 1:
+        if a>0:
+         return ((0,a**(0.5),-rootcheck[-1]),(0,a**(0.5),-rootcheck[-1]))
+        if a<0:
+         return ((0,-1*abs(a**(0.5)),rootcheck[-1]),(0,abs(a**(0.5)),-1*rootcheck[-1]))
+    if len(rootcheck) == 2:
+        if a > 0:
+            return ((0, a ** (0.5), -rootcheck[-1]), (0, a ** 0.5, -rootcheck[-2]))
+        if a < 0:
+            return ((0, -1*abs(a ** (0.5)), rootcheck[-1]), (0, abs(a ** (0.5)), -1*rootcheck[-2]))
+
+"""
+Thank you for reading and potentially using my library in the future!!
+"""
