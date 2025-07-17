@@ -87,7 +87,7 @@ def Roots(a:float,fx:tuple=None,gx:tuple=None):
         print(e)
         return
     return quadratic.Roots(gx) #a^f(x) cant be zero
-def Derivative(a,fx,gx):
+def Derivative(a:float,fx:float=None,gx:tuple or float = None):
     if isinstance(a, tuple):
         if len(a) == 3:
             temp = a
@@ -101,4 +101,4 @@ def Derivative(a,fx,gx):
         print(e)
         return
     if gx==1 or gx==(0,0,0):
-        return (a,fx,Deriv)
+        return (a,fx,quadratic.mullFunc(quadratic.Derivative(fx),ln(a)))
