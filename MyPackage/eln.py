@@ -1,4 +1,5 @@
 import quadratic
+import random
 class exponentException(Exception):
     pass
 class InvalidFormatException(exponentException):
@@ -67,12 +68,24 @@ def lnList(items):
         print(e)
         return
 """
-def _check_eln(a,fx,gx):
-    if (type(a) != float and type(a) != int) or (type(fx) != tuple) or (type(gx) != tuple and gx != 1):
+"""
+def _check(a,fx,gx):
+    if (type(a) != float and type(a) != int) or (type(fx) != tuple) or (type(gx) != tuple and type(gx) != int and type(gx) != float):
+        return False
+    if quadratic._check(fx) == False:
+        return False
+    if type(gx)== tuple and quadratic._check(gx) == False:
         return False
     return True
 def getFunc(number:float,exponent:tuple,times_this:tuple):
-    return (number,exponent,times_this)
+    try:
+     if _check_eln(number,exponent,times_this) == True:
+      return (number,exponent,times_this)
+     else:
+         raise InvalidFormatException()
+    except InvalidFormatException as e:
+        print(e)
+        return
 def Roots(a:float,fx:tuple=None,gx:tuple=None):
     if isinstance(a, tuple):
         if len(a) == 3:
@@ -100,5 +113,31 @@ def Derivative(a:float,fx:float=None,gx:tuple or float = None):
     except InvalidFormatException as e:
         print(e)
         return
-    if gx==1 or gx==(0,0,0):
+    if type(gx) != tuple:
         return (a,fx,quadratic.mullFunc(quadratic.Derivative(fx),ln(a)))
+"""
+def getFunc(A,exponent,timesfunc):
+  try:
+   if _check(A,exponent,timesfunc) == True:
+    fx=exponent
+    gx=timesfunc
+    if type(gx) == tuple:
+     func=(f"({A}^({fx[0]}x^2+{fx[1]}x+{fx[2]})*({gx[0]}x^2+{gx[1]}x+{gx[2]}))")
+     return func
+    else:
+     func=(f"({A}^({fx[0]}x^2+{fx[1]}x+{fx[2]}))*{gx}")
+     return func
+   else:
+       raise InvalidFormatException()
+  except InvalidFormatException as e:
+      print(e)
+      return
+def _check(a,fx,gx):
+    if (type(a) != float and type(a) != int) or (type(fx) != tuple) or (type(gx) != tuple and type(gx) != int and type(gx) != float):
+        return False
+    if quadratic._check(fx[0],fx[1],fx[2]) == False:
+        return False
+    if type(gx)== tuple and quadratic._check(gx[0],gx[1],gx[2]) == False:
+        return False
+    return True
+print(getFunc(2,(0,1,0),(1,1,1)))
