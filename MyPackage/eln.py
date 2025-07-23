@@ -178,7 +178,7 @@ class Mull:
     def tostring(self):
         if self.firstpart is None or self.secendpart is None:
             return "Invalid Mull Expression"
-        return f"{{{self.firstpart.tostring()}*{self.secendpart.tostring()}}}"
+        return f"{{{self.firstpart.tostring()}}}*{{{self.secendpart.tostring()}}}"
     def __str__(self):
         return self.tostring()
     def equaltype(self,other):
@@ -244,5 +244,4 @@ class Expo:
         raise NotSupportedException("we dont support x^x integrals or derivatives|integral error")
     def equaltype(self,other):
         return isinstance(other,Expo)
-
 
