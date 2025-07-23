@@ -69,6 +69,8 @@ class Constant: #any constant
         return Constant(0)
     def tostring(self):
         return str(self.num)
+    def __str__(self):
+        return self.tostring()
     def add(self,num):
       if (isinstance(num,Constant)):
         return Constant(self.num+num.num)
