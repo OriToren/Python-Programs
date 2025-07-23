@@ -1,3 +1,6 @@
+# {} means times or mulltiply
+# () normal ones means Exponent
+# [] these are for sub and add
 def equals(obj1,obj2):
     if obj1 is None or obj2 is None:
         return obj1 is obj2
@@ -123,7 +126,7 @@ class Add:
     def getderivative(self):
         return Add(self.firstpart.getderivative(),self.secendpart.getderivative())
     def tostring(self):
-        return f"{self.firstpart.tostring()} + {self.secendpart.tostring()}"
+        return f"[{self.firstpart.tostring()} + {self.secendpart.tostring()}]"
     def __str__(self):
         return self.tostring()
     def integral(self):
@@ -194,7 +197,7 @@ class Sub:
     def integral(self):
         return Sub(self.firstpart.integral(), self.secendpart.integral())
     def tostring(self):
-        return f"{self.firstpart.tostring()}-{self.secendpart.tostring()}"
+        return f"[{self.firstpart.tostring()}-{self.secendpart.tostring()}]"
     def __str__(self):
         return self.tostring()
     def equaltype(self,other):
