@@ -2,7 +2,7 @@
 
 from abc import ABC
 from itertools import combinations
-from nt import system
+
 
 
 # () means multiplication,Add,Sub
