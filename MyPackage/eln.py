@@ -1,6 +1,12 @@
 
+
 from abc import ABC
 from itertools import combinations
+
+# {} means times or mulltiply
+# () normal ones means Exponent
+
+
 def equals(obj1,obj2):
     if obj1 is None or obj2 is None:
         return obj1 is obj2
@@ -94,6 +100,8 @@ class Constant(Expression): #any constant
         return Constant(0)
     def tostring(self):
         return str(self.num)
+    def __str__(self):
+        return self.tostring()
     def add(self,num):
       if (isinstance(num,Constant)):
         return Constant(self.num+num.num)
@@ -252,5 +260,4 @@ print(Mull(Var(),Expo(Constant(2),Var())).integral())
 print(Expo(Constant(ePower(1)),Sub(Var(),Constant(1))).integral())
 print(Mull(Expo(Var(),Constant(3)),Expo(Var(),Constant(1))).integral()) #for example x^3 * x wont work. we need x^3 * x^1 for it to work.
 print(Mull(Expo(Constant(2),Var()),Var()).integral())
-
 
