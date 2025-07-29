@@ -2,6 +2,8 @@
 
 from abc import ABC
 from itertools import combinations
+from nt import system
+
 
 # {} means times or mulltiply
 # () normal ones means Exponent
@@ -88,6 +90,11 @@ class Expression(ABC):
         self.integrationdepth+=1
         if self.integrationdepth > 1000:
             raise InvalidCombinationException("need to switch integration sides")
+    def getname(self):
+        return self.__class__._name__
+    def defintegral(self,startpoint,endpoint):
+        integral=self.integral()
+        return integral.evaluate(endpoint) - integral.evaluate(startpoint)
 
 class Constant(Expression): #any constant
     def __init__(self,num):
@@ -111,6 +118,8 @@ class Constant(Expression): #any constant
         return Mull(Constant(self.num),Var())
     def equaltype(self,other):
         return isinstance(other,Constant)
+    def getname(self):
+        return "Constant"
 class Var(Expression): #x
     def evaluate(self,num):
         return num
@@ -125,6 +134,8 @@ class Var(Expression): #x
         return 0
     def equaltype(self,other):
         return isinstance(other,Var)
+    def getname(self):
+        return "Var"
 class Add(Expression):
     def __init__(self,firstpart,secendpart):
         self.firstpart=firstpart
@@ -144,6 +155,8 @@ class Add(Expression):
         return Add(self.firstpart.integral(),self.secendpart.integral())
     def equaltype(self,other):
         return isinstance(other,Add)
+    def getname(self):
+        return "Add"
 class Mull(Expression):
     def __init__(self,firstpart,secendpart):
         self.firstpart=firstpart
@@ -163,30 +176,40 @@ class Mull(Expression):
             return Constant(self.secendpart.getnum())
         return Add(Mull(self.firstpart.getderivative(), self.secendpart),Mull(self.firstpart, self.secendpart.getderivative()))
     def integral(self):#was tough. very tough.
-        if type(self.firstpart) == Expo and type(self.secendpart) == Var and type(self.firstpart.base)==Constant:
-            raise InvalidCombinationException("please switch the order of the multiplication to x*A^x")
-        if isinstance(self.firstpart, Constant):
-            return Mull(self.firstpart, self.secendpart.integral())
-        if isinstance(self.secendpart, Constant):
-            return Mull(self.secendpart, self.firstpart.integral())
-        if isinstance(self.firstpart, Expo) and isinstance(self.secendpart, Expo):
-            if equals(self.firstpart.exponent, self.secendpart.exponent):
-                base = Mull(self.firstpart.base, self.secendpart.base)
-                simplified = Expo(base, self.firstpart.exponent)
-                return simplified.integral()
-            if equals(self.firstpart.base, self.secendpart.base):
-                expo = Add(self.firstpart.exponent, self.secendpart.exponent)
-                simplified = Expo(self.firstpart.base, expo)
-                return simplified.integral()
-        try:
-             part1 = Mull(self.firstpart, self.secendpart.integral())
-             part2 = Mull(self.firstpart.getderivative(), self.secendpart.integral()).integral()
-             return Sub(part1, part2)
-        except (RecursionError, InvalidCombinationException) as e:
-            if self.firstpart.base.equaltype(Constant):
-             part1 = Mull(self.secendpart, self.firstpart.integral())
-             part2 = Mull(self.secendpart.getderivative(), self.firstpart.integral()).integral()
-             return Sub(part1, part2)
+            if type(self.firstpart) == Expo and type(self.secendpart) == Expo and type(self.firstpart.base) == Constant:
+                raise InvalidCombinationException("please switch the order of the multiplication to x*A^x")
+            if isinstance(self.firstpart, Constant):
+                return Mull(self.firstpart, self.secendpart.integral())
+            if isinstance(self.secendpart, Constant):
+                return Mull(self.secendpart, self.firstpart.integral())
+            if isinstance(self.firstpart, Expo) and isinstance(self.secendpart, Expo):
+                if equals(self.firstpart.exponent, self.secendpart.exponent):
+                    base = Mull(self.firstpart.base, self.secendpart.base)
+                    simplified = Expo(base, self.firstpart.exponent)
+                    return simplified.integral()
+                if equals(self.firstpart.base, self.secendpart.base):
+                    expo = Add(self.firstpart.exponent, self.secendpart.exponent)
+                    simplified = Expo(self.firstpart.base, expo)
+                    return simplified.integral()
+            if (isinstance(self.firstpart, Expo) and
+                    isinstance(self.firstpart.base, Var) and
+                    isinstance(self.firstpart.exponent, Constant) and
+                    isinstance(self.secendpart, Expo) and
+                isinstance(self.secendpart.base, Constant) and
+                    isinstance(self.secendpart.exponent, Var)):
+                return self.integral_xn_ax(self.firstpart, self.secendpart)
+            try:
+                v_integral = self.secendpart.integral()
+                part1 = Mull(self.firstpart, v_integral)
+                part2 = Mull(self.firstpart.getderivative(), v_integral).integral()
+                return Sub(part1, part2)
+            except (RecursionError, InvalidCombinationException):
+                if isinstance(self.secendpart, Expo) and isinstance(self.secendpart.base, Constant):
+                    u_integral = self.firstpart.integral()
+                    part1 = Mull(self.secendpart, u_integral)
+                    part2 = Mull(self.secendpart.getderivative(), u_integral).integral()
+                    return Sub(part1, part2)
+                raise NotSupportedException("Integration failed - possibly unsupported pattern")
     def tostring(self):
         if self.firstpart is None or self.secendpart is None:
             return "Invalid Mull Expression"
@@ -195,6 +218,23 @@ class Mull(Expression):
         return self.tostring()
     def equaltype(self,other):
         return isinstance(other,Mull)
+    def getname(self):
+        return "Mull"
+    def integral_xn_ax(self, xn_expr, ax_expr):
+        n = xn_expr.exponent.getnum()
+        a = ax_expr.base.getnum()
+        ln_a = ln(a)
+        if ln_a is None:
+            raise InvalidCombinationException("Invalid base for logarithm")
+        if n == 0:
+            return Mull(ax_expr, Constant(1 / ln_a))
+        else:
+            term1 = Mull(xn_expr, ax_expr)
+            term1 = Mull(term1, Constant(1 / ln_a))
+            lower_power = Expo(Var(), Constant(n - 1))
+            recursive_integral = self.integral_xn_ax(lower_power, ax_expr)
+            term2 = Mull(Constant(n / ln_a), recursive_integral)
+            return Sub(term1, term2)
 class Sub(Expression):
     def __init__(self,firstpart,secendpart):
         self.firstpart=firstpart
@@ -214,6 +254,8 @@ class Sub(Expression):
         return self.tostring()
     def equaltype(self,other):
         return isinstance(other,Sub)
+    def getname(self):
+        return "Sub"
 class Expo(Expression):
     def __init__(self,base,exponent):
         self.base=base
@@ -253,11 +295,12 @@ class Expo(Expression):
              return Expo(self.base,Constant(merger)).integral()
         if self.exponent.tostring() != "x":
             return Mull(Constant(1/(self.exponent.getnum()+1)),Expo(Var(),Constant(self.exponent.getnum()+1)))
+        if isinstance(self.base, Constant) and isinstance(self.exponent, Var):
+            return Mull(Expo(self.base,Var()),Constant(1 / ln(self.base.getnum())))
         raise NotSupportedException("we dont support x^x integrals or derivatives|integral error")
     def equaltype(self,other):
         return isinstance(other,Expo)
-print(Mull(Var(),Expo(Constant(2),Var())).integral())
-print(Expo(Constant(ePower(1)),Sub(Var(),Constant(1))).integral())
-print(Mull(Expo(Var(),Constant(3)),Expo(Var(),Constant(1))).integral()) #for example x^3 * x wont work. we need x^3 * x^1 for it to work.
-print(Mull(Expo(Constant(2),Var()),Var()).integral())
-
+    def getname(self):
+        return "Expo"
+#format a^x*x works but only for x^a while a=1
+#format x^a * b^x works for every a.
