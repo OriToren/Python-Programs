@@ -1,3 +1,6 @@
+
+from abc import ABC
+from itertools import combinations
 def equals(obj1,obj2):
     if obj1 is None or obj2 is None:
         return obj1 is obj2
@@ -58,7 +61,29 @@ class InvalidCombinationException(ELNException):
 class NotSupportedException(ELNException):
     def __init__(self,msg):
         super().__init__(msg)
-class Constant: #any constant
+
+
+class Expression(ABC):
+    def __init__(self):
+        self.integrationdepth = 0
+    def integral(self):
+        pass
+    def getderivative(self):
+        pass
+    def evaluate(self):
+        pass
+    def tostring(self):
+        pass
+    def equaltype(self):
+        pass
+    def getdepth(self):
+        return self._integration_depth
+    def viable(self):
+        self.integrationdepth+=1
+        if self.integrationdepth > 1000:
+            raise InvalidCombinationException("need to switch integration sides")
+
+class Constant(Expression): #any constant
     def __init__(self,num):
         self.num=num
     def getnum(self):
@@ -78,7 +103,7 @@ class Constant: #any constant
         return Mull(Constant(self.num),Var())
     def equaltype(self,other):
         return isinstance(other,Constant)
-class Var: #x
+class Var(Expression): #x
     def evaluate(self,num):
         return num
     def getderivative(self):
@@ -92,24 +117,7 @@ class Var: #x
         return 0
     def equaltype(self,other):
         return isinstance(other,Var)
-class Function:
-    def __init__(self,base,fx,gx):
-         self.base=base
-         self.fx=fx
-         self.gx=gx
-    def getbase(self):
-        return self.base.tostring()
-    def getexpo(self):
-        return self.expo.tostring()
-    def getfx(self):
-        return self.gx.tostring()
-    def tostring(self):
-        return f"{self.base.tostring()}^({self.fx.tostring()}) * {self.gx.tostring()}"
-    def __str__(self):
-        return self.tostring()
-    def equaltype(self,other):
-        return isinstance(other,Function)
-class Add:
+class Add(Expression):
     def __init__(self,firstpart,secendpart):
         self.firstpart=firstpart
         self.secendpart=secendpart
@@ -121,17 +129,18 @@ class Add:
     def getderivative(self):
         return Add(self.firstpart.getderivative(),self.secendpart.getderivative())
     def tostring(self):
-        return f"{self.firstpart.tostring()} + {self.secendpart.tostring()}"
+        return f"({self.firstpart.tostring()} + {self.secendpart.tostring()})"
     def __str__(self):
         return self.tostring()
     def integral(self):
         return Add(self.firstpart.integral(),self.secendpart.integral())
     def equaltype(self,other):
         return isinstance(other,Add)
-class Mull:
+class Mull(Expression):
     def __init__(self,firstpart,secendpart):
         self.firstpart=firstpart
         self.secendpart=secendpart
+        self.integrationdepth=0
     def evaluate(self,x_value):
             if (type(x_value) == int or type(x_value) == float):
                 return self.firstpart.evaluate(x_value) * self.secendpart.evaluate(x_value)
@@ -145,40 +154,40 @@ class Mull:
         if (isinstance(self.firstpart,Var) and isinstance(self.secendpart,Constant)) == True:
             return Constant(self.secendpart.getnum())
         return Add(Mull(self.firstpart.getderivative(), self.secendpart),Mull(self.firstpart, self.secendpart.getderivative()))
-    def integral(self): #was tough. very tough.
-        if (isinstance(self.firstpart,Constant) or (isinstance(self.secendpart,Constant))):
-            if (isinstance(self.firstpart,Constant)):
-                return Mull(self.firstpart,self.secendpart.integral())
-            else:
-                return Mull(self.firstpart.integral(),self.secendpart)
-        if (isinstance(self.firstpart,Constant) and isinstance(self.secendpart,Constant)):
-            return Mull(Constant(self.firstpart.getnum()*self.secendpart.getnum()),Var())
+    def integral(self):#was tough. very tough.
+        if type(self.firstpart) == Expo and type(self.secendpart) == Var and type(self.firstpart.base)==Constant:
+            raise InvalidCombinationException("please switch the order of the multiplication to x*A^x")
+        if isinstance(self.firstpart, Constant):
+            return Mull(self.firstpart, self.secendpart.integral())
+        if isinstance(self.secendpart, Constant):
+            return Mull(self.secendpart, self.firstpart.integral())
         if isinstance(self.firstpart, Expo) and isinstance(self.secendpart, Expo):
-            if equals(self.firstpart.exponent,self.secendpart.exponent):
+            if equals(self.firstpart.exponent, self.secendpart.exponent):
                 base = Mull(self.firstpart.base, self.secendpart.base)
                 simplified = Expo(base, self.firstpart.exponent)
                 return simplified.integral()
-            if equals(self.firstpart.base,self.secendpart.base):
-                expo=Add(self.firstpart.exponent,self.secendpart.exponent)
-                simplified=Expo(self.firstpart.base,expo)
+            if equals(self.firstpart.base, self.secendpart.base):
+                expo = Add(self.firstpart.exponent, self.secendpart.exponent)
+                simplified = Expo(self.firstpart.base, expo)
                 return simplified.integral()
         try:
-            part1=Mull(self.firstpart,self.secendpart.integral())
-            part2=Mull(self.firstpart.getderivative(),self.secendpart.integral()).integral()
-            return Sub(part1,part2)
-        except RecursionError as e:
-            part1 = Mull(self.secendpart, self.firstpart.integral())
-            part2 = Mull(self.secendpart.getderivative(), self.firstpart.integral()).integral()
-            return Sub(part1,part2)
+             part1 = Mull(self.firstpart, self.secendpart.integral())
+             part2 = Mull(self.firstpart.getderivative(), self.secendpart.integral()).integral()
+             return Sub(part1, part2)
+        except (RecursionError, InvalidCombinationException) as e:
+            if self.firstpart.base.equaltype(Constant):
+             part1 = Mull(self.secendpart, self.firstpart.integral())
+             part2 = Mull(self.secendpart.getderivative(), self.firstpart.integral()).integral()
+             return Sub(part1, part2)
     def tostring(self):
         if self.firstpart is None or self.secendpart is None:
             return "Invalid Mull Expression"
-        return f"{{{self.firstpart.tostring()}*{self.secendpart.tostring()}}}"
+        return f"({self.firstpart.tostring()}*{self.secendpart.tostring()})"
     def __str__(self):
         return self.tostring()
     def equaltype(self,other):
         return isinstance(other,Mull)
-class Sub:
+class Sub(Expression):
     def __init__(self,firstpart,secendpart):
         self.firstpart=firstpart
         self.secendpart=secendpart
@@ -197,7 +206,7 @@ class Sub:
         return self.tostring()
     def equaltype(self,other):
         return isinstance(other,Sub)
-class Expo:
+class Expo(Expression):
     def __init__(self,base,exponent):
         self.base=base
         self.exponent=exponent
@@ -218,12 +227,12 @@ class Expo:
 
       raise NotSupportedException("we dont support x^x  integrals or derivatives|derivative error")
     def tostring(self):
-         return  f"{self.base.tostring()}^({self.exponent.tostring()})"
+         return  f"{self.base.tostring()}^{{{self.exponent.tostring()}}}"
     def __str__(self):
         return self.tostring()
     def integral(self):
-        if type(self.base)==Constant and type(self.exponent) == Var: #replace the number with ln later
-            return Mull(Expo(self.base,self.exponent),Constant(round(1/ln(self.base.getnum()),5)))
+        if type(self.base)==Constant and (type(self.exponent) == Var or type(self.exponent) == Add or type(self.exponent) == Sub): #replace the number with ln later
+            return Mull(Mull(Expo(self.base,self.exponent),Constant(round(1/ln(self.base.getnum()),5))),self.exponent.getderivative())
         if type(self.base) == Constant and type(self.exponent) == Constant:
             return Mull(Expo(self.base,self.exponent),Var())
         if type(self.base) == Mull and type(self.exponent) == Var:
@@ -239,5 +248,9 @@ class Expo:
         raise NotSupportedException("we dont support x^x integrals or derivatives|integral error")
     def equaltype(self,other):
         return isinstance(other,Expo)
+print(Mull(Var(),Expo(Constant(2),Var())).integral())
+print(Expo(Constant(ePower(1)),Sub(Var(),Constant(1))).integral())
+print(Mull(Expo(Var(),Constant(3)),Expo(Var(),Constant(1))).integral()) #for example x^3 * x wont work. we need x^3 * x^1 for it to work.
+print(Mull(Expo(Constant(2),Var()),Var()).integral())
 
 
