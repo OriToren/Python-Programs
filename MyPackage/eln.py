@@ -5,8 +5,8 @@ from itertools import combinations
 from nt import system
 
 
-# {} means times or mulltiply
-# () normal ones means Exponent
+# () means multiplication,Add,Sub
+# {} curly ones means Exponent
 
 
 def equals(obj1,obj2):

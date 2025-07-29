@@ -10,6 +10,11 @@ Programs i write in python. with my very non elite knowledge il show how to use 
 
 &nbsp; import (names of libaries) #for example quadraics
 
+there exists a viable option if you dont want to type (name of libary).method() every time:
+
+from (libaryname) import *
+this makes sure that all methods are already deployed but makes it less readable
+            
 2)make sure that \_\_init\_\_.py is inside MyPackage
 
 3)open with pycharm The directory Where MyPackage is  (in my example this would be scripts)  and mark MyPackage (with rightclick) and mark as Source Roots #this step isnt required but recommend
