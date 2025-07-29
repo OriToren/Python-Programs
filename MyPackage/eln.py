@@ -3,8 +3,8 @@
 from abc import ABC
 from itertools import combinations
 
-# {} means times or mulltiply
-# () normal ones means Exponent
+# () means multiplication,Add,Sub
+# {} curly ones means Exponent
 
 
 def equals(obj1,obj2):
