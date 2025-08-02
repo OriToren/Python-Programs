@@ -387,9 +387,3 @@ class Expo(Expression):
         return isinstance(other,Expo)
     def getname(self):
         return "Expo"
-expr = Sub(Sub(Add(Add(Sub(Var(), Constant(2.005)), Constant(-10)),Constant(11.5)),Constant(1.755)),Var())
-print(expr)
-print(expr.simplify())
-print(Mull(Constant(0),Expo(Add(Var(),Constant(3)),Var())))
-print(Mull(Constant(0),Expo(Add(Var(),Constant(3)),Var())).simplify())
-func=Expo(Add(Var(),Constant(3)),Var())
