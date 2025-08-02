@@ -3,7 +3,7 @@
 from abc import ABC
 from gc import is_finalized
 from itertools import combinations
-from nt import system
+
 
 
 # () means multiplication,Add,Sub
