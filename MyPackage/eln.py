@@ -1,6 +1,7 @@
 
 
 from abc import ABC
+from gc import is_finalized
 from itertools import combinations
 from nt import system
 
@@ -73,7 +74,7 @@ class NotSupportedException(ELNException):
 
 class Expression(ABC):
     def __init__(self):
-        self.integrationdepth = 0
+        pass
     def integral(self):
         pass
     def getderivative(self):
@@ -84,21 +85,18 @@ class Expression(ABC):
         pass
     def equaltype(self):
         pass
-    def getdepth(self):
-        return self._integration_depth
-    def viable(self):
-        self.integrationdepth+=1
-        if self.integrationdepth > 1000:
-            raise InvalidCombinationException("need to switch integration sides")
     def getname(self):
         return self.__class__._name__
     def defintegral(self,startpoint,endpoint):
         integral=self.integral()
         return integral.evaluate(endpoint) - integral.evaluate(startpoint)
+    def simplify(self):
+        pass
 
 class Constant(Expression): #any constant
     def __init__(self,num):
         self.num=num
+        self.simple=True
     def getnum(self):
         return self.num
     def evaluate(self,anynum):
@@ -120,7 +118,11 @@ class Constant(Expression): #any constant
         return isinstance(other,Constant)
     def getname(self):
         return "Constant"
-class Var(Expression): #x
+    def simplify(self):
+        return self
+class Var(Expression):#x
+    def __init__(self):
+        self.simple=True
     def evaluate(self,num):
         return num
     def getderivative(self):
@@ -136,10 +138,15 @@ class Var(Expression): #x
         return isinstance(other,Var)
     def getname(self):
         return "Var"
+    def simplify(self):
+        return self
 class Add(Expression):
-    def __init__(self,firstpart,secendpart):
+    def __init__(self,firstpart,secendpart,simple=None):
         self.firstpart=firstpart
         self.secendpart=secendpart
+        self.simple=simple
+        if self.simple==None:
+         self.simple=False
     def evaluate(self,x_value):
         if (type(x_value) == int or type(x_value) == float):
          return self.firstpart.evaluate(x_value) + self.secendpart.evaluate(x_value)
@@ -157,11 +164,45 @@ class Add(Expression):
         return isinstance(other,Add)
     def getname(self):
         return "Add"
+    def simplify(self):
+        if self.firstpart.simple==True and self.secendpart.simple==True:
+          if not(isinstance(self.firstpart,(Var,Constant)) or isinstance(self.secendpart,(Var,Constant))):
+            self.simple=True
+          elif isinstance(self.firstpart,(Var,Constant)) and isinstance(self.secendpart,(Sub,Add)) and (isinstance(self.secendpart.secendpart,(Var,Constant))
+              or isinstance(self.secendpart.firstpart,(Var,Constant))):
+                fp = self.secendpart.firstpart
+                sp = self.secendpart.secendpart
+                if fp.equaltype(self.firstpart):
+                    return Add(Add(fp, self.firstpart).simplify(),sp)
+                if sp.equaltype(self.firstpart):
+                    return Add(Add(sp,self.firstpart).simplify(),fp)
+          elif not isinstance(self.firstpart,(Var,Constant)):
+            fp = self.firstpart.firstpart
+            sp = self.firstpart.secendpart
+            if fp.equaltype(self.secendpart):
+                return Add(Add(fp,self.secendpart).simplify(),sp)
+            if sp.equaltype(self.secendpart):
+                return Add(Add(sp,self.secendpart).simplify(),fp)
+        if not (isinstance(self.firstpart, (Var, Constant)) and isinstance(self.secendpart, (Var, Constant))):
+            return Add(self.firstpart.simplify(),self.secendpart.simplify()).simplify()
+        if isinstance(self.secendpart,Constant) and isinstance(self.firstpart,Constant):
+            return Constant(self.firstpart.getnum()+self.secendpart.getnum())
+        if isinstance(self.secendpart,Var) and isinstance(self.firstpart,Var):
+            return Mull(Constant(2),Var())
+        if isinstance(self.firstpart,(Add,Sub)) or isinstance(self.secendpart,(Add,Sub)) and self.simple==False:
+           if isinstance(self.firstpart, (Var,Constant)):
+               return Add(self.firstpart,self.secendpart.simplify()).simplify()
+           else:
+               return Add(self.firstpart.simplify(),self.secendpart).simplify()
+        self.simple=True
+        return self
 class Mull(Expression):
-    def __init__(self,firstpart,secendpart):
+    def __init__(self,firstpart,secendpart,simple=None):
         self.firstpart=firstpart
         self.secendpart=secendpart
-        self.integrationdepth=0
+        self.simple=simple
+        if self.simple==None:
+         self.simple=False
     def evaluate(self,x_value):
             if (type(x_value) == int or type(x_value) == float):
                 return self.firstpart.evaluate(x_value) * self.secendpart.evaluate(x_value)
@@ -235,10 +276,19 @@ class Mull(Expression):
             recursive_integral = self.integral_xn_ax(lower_power, ax_expr)
             term2 = Mull(Constant(n / ln_a), recursive_integral)
             return Sub(term1, term2)
+    def simplify(self):
+        if isinstance(self.firstpart,Var) and isinstance(self.secendpart,Var):
+            return Expo(Var(),Constant(2))
+        if (isinstance(self.firstpart, Constant) and self.firstpart.getnum() == 0) or  (isinstance(self.secendpart, Constant) and self.secendpart.getnum() == 0):
+            return Constant(0)
+        return self
 class Sub(Expression):
-    def __init__(self,firstpart,secendpart):
+    def __init__(self,firstpart,secendpart,simple=None):
         self.firstpart=firstpart
         self.secendpart=secendpart
+        self.simple=simple
+        if self.simple==None:
+         self.simple=False
     def evaluate(self,x_value):
         if (type(x_value) == int or type(x_value) == float):
             return self.firstpart.evaluate(x_value) - self.secendpart.evaluate(x_value)
@@ -249,13 +299,48 @@ class Sub(Expression):
     def integral(self):
         return Sub(self.firstpart.integral(), self.secendpart.integral())
     def tostring(self):
-        return f"{self.firstpart.tostring()}-{self.secendpart.tostring()}"
+        return f"({self.firstpart.tostring()}-{self.secendpart.tostring()})"
     def __str__(self):
         return self.tostring()
     def equaltype(self,other):
         return isinstance(other,Sub)
     def getname(self):
         return "Sub"
+    def simplify(self):
+        if self.firstpart.simple == True and self.secendpart.simple == True:
+            if not (isinstance(self.firstpart, (Var, Constant)) or isinstance(self.secendpart, (Var, Constant))):
+                self.simple = True
+            elif isinstance(self.firstpart, (Var, Constant)) and isinstance(self.secendpart, (Sub, Add)) and (
+                    isinstance(self.secendpart.firstpart, (Var, Constant)) or isinstance(self.secendpart.secendpart,
+                                                                                         (Var, Constant))
+            ):
+                fp = self.secendpart.firstpart
+                sp = self.secendpart.secendpart
+                if fp.equaltype(self.firstpart):
+                    return Add(Sub(self.firstpart, fp).simplify(), sp).simplify()
+                if sp.equaltype(self.firstpart):
+                    return Add(Sub(self.firstpart, sp).simplify(), fp).simplify()
+            elif not isinstance(self.firstpart, (Var, Constant)):
+                fp = self.firstpart.firstpart
+                sp = self.firstpart.secendpart
+                if fp.equaltype(self.secendpart):
+                    return Add(Sub(fp, self.secendpart).simplify(), sp).simplify()
+                if sp.equaltype(self.secendpart):
+                    return Add(Sub(sp, self.secendpart).simplify(), fp).simplify()
+        if not (isinstance(self.firstpart, (Var, Constant)) and isinstance(self.secendpart, (Var, Constant))):
+            return Sub(self.firstpart.simplify(), self.secendpart.simplify()).simplify()
+        if isinstance(self.firstpart, Constant) and isinstance(self.secendpart, Constant):
+            return Constant(self.firstpart.getnum() - self.secendpart.getnum())
+        if isinstance(self.firstpart, Var) and isinstance(self.secendpart, Var):
+            return Constant(0)
+        if (isinstance(self.firstpart, (Add, Sub)) or isinstance(self.secendpart, (Add, Sub))) and self.simple == False:
+            if isinstance(self.firstpart, (Var, Constant)):
+                return Sub(self.firstpart, self.secendpart.simplify()).simplify()
+            else:
+                return Sub(self.firstpart.simplify(), self.secendpart).simplify()
+
+        self.simple = True
+        return self
 class Expo(Expression):
     def __init__(self,base,exponent):
         self.base=base
@@ -302,5 +387,9 @@ class Expo(Expression):
         return isinstance(other,Expo)
     def getname(self):
         return "Expo"
-#format a^x*x works but only for x^a while a=1
-#format x^a * b^x works for every a.
+expr = Sub(Sub(Add(Add(Sub(Var(), Constant(2.005)), Constant(-10)),Constant(11.5)),Constant(1.755)),Var())
+print(expr)
+print(expr.simplify())
+print(Mull(Constant(0),Expo(Add(Var(),Constant(3)),Var())))
+print(Mull(Constant(0),Expo(Add(Var(),Constant(3)),Var())).simplify())
+func=Expo(Add(Var(),Constant(3)),Var())

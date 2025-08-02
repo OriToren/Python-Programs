@@ -284,11 +284,12 @@ def Integral(a:float,b:float=None,c:float=None): #based on ax^3 + bx^2 +cx +d. #
              return answer
         else:
             try:
-                if len(a) >3:
+                if len(a) >3 :
                     raise IntegralException()
             except IntegralException as e:
                 print(e)
                 return
+
     try:
      if _check(a,d,e) == False  :
         raise InvalidNumException
@@ -523,3 +524,6 @@ def mullFunc(a: float, b: float = None, c: float = None,x:float=None):
 """
 Thank you for reading and potentially using my library in the future!!
 """
+func=(1,2,1)
+
+
