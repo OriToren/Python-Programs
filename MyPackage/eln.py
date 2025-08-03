@@ -129,6 +129,8 @@ class Var(Expression):#x
         return Constant(1)
     def tostring(self):
         return "x"
+    def __str__(self):
+        return Var().tostring()
     def integral(self):
         integral=Mull(Constant(1/2),Expo(Var(),Constant(2)))
         return integral
@@ -145,6 +147,10 @@ class Add(Expression):
         self.firstpart=firstpart
         self.secendpart=secendpart
         self.simple=simple
+        if isinstance(self.firstpart,(int,float)):
+            self.firstpart=Constant(firstpart)
+        if isinstance(self.secendpart,(int,float)):
+            self.secendpart=Constant(secendpart)
         if self.simple==None:
          self.simple=False
     def evaluate(self,x_value):
@@ -189,6 +195,10 @@ class Add(Expression):
             return Constant(self.firstpart.getnum()+self.secendpart.getnum())
         if isinstance(self.secendpart,Var) and isinstance(self.firstpart,Var):
             return Mull(Constant(2),Var())
+        if equals(self.firstpart,Constant(0)):
+            return self.secendpart
+        if equals(self.secendpart,Constant(0)):
+            return self.firstpart
         if isinstance(self.firstpart,(Add,Sub)) or isinstance(self.secendpart,(Add,Sub)) and self.simple==False:
            if isinstance(self.firstpart, (Var,Constant)):
                return Add(self.firstpart,self.secendpart.simplify()).simplify()
@@ -201,6 +211,10 @@ class Mull(Expression):
         self.firstpart=firstpart
         self.secendpart=secendpart
         self.simple=simple
+        if isinstance(self.firstpart,(int,float)):
+            self.firstpart=Constant(firstpart)
+        if isinstance(self.secendpart,(int,float)):
+            self.secendpart=Constant(secendpart)
         if self.simple==None:
          self.simple=False
     def evaluate(self,x_value):
@@ -281,12 +295,17 @@ class Mull(Expression):
             return Expo(Var(),Constant(2))
         if (isinstance(self.firstpart, Constant) and self.firstpart.getnum() == 0) or  (isinstance(self.secendpart, Constant) and self.secendpart.getnum() == 0):
             return Constant(0)
+        self.simple=True
         return self
 class Sub(Expression):
     def __init__(self,firstpart,secendpart,simple=None):
         self.firstpart=firstpart
         self.secendpart=secendpart
         self.simple=simple
+        if isinstance(self.firstpart,(int,float)):
+            self.firstpart=Constant(firstpart)
+        if isinstance(self.secendpart,(int,float)):
+            self.secendpart=Constant(secendpart)
         if self.simple==None:
          self.simple=False
     def evaluate(self,x_value):
@@ -342,9 +361,16 @@ class Sub(Expression):
         self.simple = True
         return self
 class Expo(Expression):
-    def __init__(self,base,exponent):
+    def __init__(self,base,exponent,simple=None):
         self.base=base
         self.exponent=exponent
+        self.simple=simple
+        if isinstance(self.base,(int,float)):
+            self.base=Constant(base)
+        if isinstance(self.exponent,(int,float)):
+            self.exponent=Constant(exponent)
+        if self.simple is None:
+            self.simple=False
     def evaluate(self,x_value):
         if (type(x_value) == int or type(x_value) == float):
             return self.base.evaluate(x_value) ** self.exponent.evaluate(x_value)
@@ -353,20 +379,20 @@ class Expo(Expression):
     def getderivative(self):
       if (isinstance(self.base,Constant) and isinstance(self.exponent,Constant)) == True: #edgecases
             return Constant(0)
-
       if (isinstance(self.base, Constant) and isinstance(self.exponent, Var)) == True:
             return Mull(self, Constant(round(ln(self.base.getnum()),5)))
-
       if (isinstance(self.base,Var) and isinstance(self.exponent, Constant)) == True:
             return Mull(Expo(self.base,Constant(self.exponent.getnum()-1)),Constant(self.exponent.getnum()))
-
+      if (isinstance(self.exponent,(Add,Sub,Mull,Expo))) and isinstance(self.base,Constant):
+          return Mull(self,Mull(Constant(ln(self.base.getnum())),self.exponent.getderivative()))
       raise NotSupportedException("we dont support x^x  integrals or derivatives|derivative error")
     def tostring(self):
          return  f"{self.base.tostring()}^{{{self.exponent.tostring()}}}"
     def __str__(self):
         return self.tostring()
     def integral(self):
-        if type(self.base)==Constant and (type(self.exponent) == Var or type(self.exponent) == Add or type(self.exponent) == Sub): #replace the number with ln later
+        if type(self.base)==Constant and (type(self.exponent) == Var or type(self.exponent) == Add or type(self.exponent) == Sub or type(self.exponent) == Expo
+        or type(self.exponent) == Mull):
             return Mull(Mull(Expo(self.base,self.exponent),Constant(round(1/ln(self.base.getnum()),5))),self.exponent.getderivative())
         if type(self.base) == Constant and type(self.exponent) == Constant:
             return Mull(Expo(self.base,self.exponent),Var())
@@ -378,7 +404,7 @@ class Expo(Expression):
             if self.exponent.firstpart.equaltype(self.exponent.secendpart) and type(self.exponent.firstpart) == Constant:
              merger=self.exponent.firstpart.getnum() + self.exponent.secendpart.getnum()
              return Expo(self.base,Constant(merger)).integral()
-        if self.exponent.tostring() != "x":
+        if self.exponent.tostring() != "x" and not isinstance(self.exponent,(Sub,Add,Expo,Mull)):
             return Mull(Constant(1/(self.exponent.getnum()+1)),Expo(Var(),Constant(self.exponent.getnum()+1)))
         if isinstance(self.base, Constant) and isinstance(self.exponent, Var):
             return Mull(Expo(self.base,Var()),Constant(1 / ln(self.base.getnum())))
@@ -387,3 +413,25 @@ class Expo(Expression):
         return isinstance(other,Expo)
     def getname(self):
         return "Expo"
+    def simplify(self):
+        if equals(self.base,Constant(0)):
+            return 0
+        if equals(self.exponent,Constant(0)):
+            return Constant(1)
+        if equals(self.exponent,Constant(1)):
+            return self.base
+        if isinstance(self.base,Constant) and self.base.equaltype(self.exponent):
+             return Constant(round(self.base.getnum()**self.exponent.getnum(),4))
+        if self.base.simple==True and self.exponent.simple==True:
+            self.simple=True
+        if isinstance(self.exponent,(Sub,Add,Mull,Expo)) and isinstance(self.base,Constant) and self.simple==False:
+            return Expo(self.base,self.exponent.simplify()).simplify()
+        if isinstance(self.base,(Sub,Add,Mull,Expo)) and isinstance(self.exponent,Constant) and self.simple==False:
+            return Expo(self.base.simplify(),self.exponent).simplify()
+        if isinstance(self.base,(Sub,Add,Mull,Expo)) and isinstance(self.exponent,(Sub,Add,Mull,Expo)) and self.simple==False:
+            return  Expo(self.base.simplify(),self.exponent.simplify()).simplify()
+        self.simple=True
+        return self
+#some shortcuts
+x=Var()
+e=ePower(1)
