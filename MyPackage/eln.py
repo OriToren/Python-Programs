@@ -1,7 +1,7 @@
 
 
 from abc import ABC
-from gc import is_finalized
+
 import random
 
 
@@ -410,7 +410,7 @@ class Mull(Expression):
                 self.firstpart=self.firstpart.simplify()
             if (isinstance(self.secendpart,(Expo,Mull,Add,Sub))):
                 self.secendpart=self.secendpart.simplify()
-            return Mull(self.firstpart,self.secendpart).simplify()
+            return Mull(self.firstpart,self.secendpart)
         self.simple=True
         return self
        except RecursionError as e:
