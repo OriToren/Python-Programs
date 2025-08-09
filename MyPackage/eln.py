@@ -23,26 +23,28 @@ def equals(obj1,obj2):
          return equals(obj1.base,obj2.base) and equals(obj1.exponent,obj2.exponent)
     return False
 
-def ln(x):
-    if x<0:
-        return None
-    sum=0
-    # we will use a diffrent taylor series expansion from Math2.org .
-    # starts to diverge around x=400 but still remains fairly close until close to a 1000
-    for i in range(1,101):
-        if x==ePower(i):
+def ln(x, terms=50):
+    if x <= 0:
+        raise ValueError("ln undefined for non-positive x")
+    for i in range(0,100):
+        if x == ePower(i):
             return i
-    try:
-        if x>0.5:
-         for i in range(1,1000):
-             sum=sum+((x-1)**i/x**i)/i
-         return round(sum,5)
-    except(OverflowError):
-        return round(sum,5)
-    # we will use the classic taylor series expansion for ln(x)
-    for i in range(1,1000):
-        sum=sum+((x-1)**i / i )*(-1)**(i+1)
-    return round(sum,5)
+    k = 0
+    while x > 1.5:
+        x /= 2
+        k += 1
+    while x < 0.5:
+        x *= 2
+        k -= 1
+    z = x - 1
+    total = 0.0
+    sign = 1
+    for n in range(1, terms + 1):
+        term = sign * (z ** n) / n
+        total += term
+        sign *= -1
+    LN2 = 0.6931471805599453 #ln2
+    return total + k * LN2
 def ePower(x):
     sum=0
     mark=1
@@ -67,6 +69,9 @@ class InvalidCombinationException(ELNException):
     def __init__(self,msg):
         super().__init__(msg)
 class NotSupportedException(ELNException):
+    def __init__(self,msg):
+        super().__init__(msg)
+class InvalidNumException(ELNException):
     def __init__(self,msg):
         super().__init__(msg)
 
@@ -190,6 +195,8 @@ class Add(Expression):
         return "Add"
     def simplify(self):
        try:
+        if equals(self.firstpart,self.secendpart):
+            return Mull(2,self.firstpart)
         if self.firstpart.simple==True and self.secendpart.simple==True:
           if (isinstance(self.firstpart, Mull) and isinstance(self.secendpart, Mull)):
                 fp1 = self.firstpart.firstpart
@@ -270,7 +277,7 @@ class Add(Expression):
         self.simple=True
         return self
        except RecursionError as e:
-           print("Not implemented yet")
+        pass
 class Mull(Expression):
     def __init__(self,firstpart,secendpart,simple=None):
         self.firstpart=firstpart
@@ -331,8 +338,6 @@ class Mull(Expression):
                     return Sub(part1, part2)
                 raise NotSupportedException("Integration failed,possibly not supported")
     def tostring(self):
-        if self.firstpart is None or self.secendpart is None :
-            return "Invalid Mull Expression"
         return f"({self.firstpart.tostring()}*{self.secendpart.tostring()})"
     def __str__(self):
         return self.tostring()
@@ -410,11 +415,11 @@ class Mull(Expression):
                 self.firstpart=self.firstpart.simplify()
             if (isinstance(self.secendpart,(Expo,Mull,Add,Sub))):
                 self.secendpart=self.secendpart.simplify()
-            return Mull(self.firstpart,self.secendpart).simplify()
+            return Mull(self.firstpart,self.secendpart)
         self.simple=True
         return self
        except RecursionError as e:
-           print("Not implemented yet")
+           pass
 class Sub(Expression):
     def __init__(self,firstpart,secendpart,simple=None):
         self.firstpart=firstpart
@@ -533,7 +538,7 @@ class Sub(Expression):
         self.simple = True
         return self
        except RecursionError as e:
-           print("Not implemented yet")
+           pass
 
 class Expo(Expression):
     def __init__(self,base,exponent,simple=None):
@@ -548,7 +553,8 @@ class Expo(Expression):
             self.simple=False
     def evaluate(self,x_value):
         if (type(x_value) == int or type(x_value) == float):
-            return self.base.evaluate(x_value) ** self.exponent.evaluate(x_value)
+            if not equals(self.exponent,Constant(-1)) or self.base.evaluate(x_value)!=0:
+             return self.base.evaluate(x_value) ** self.exponent.evaluate(x_value)
         else:
             raise InvalidCombinationException("evaluate doesnt accept non number types")
     def getderivative(self):
@@ -564,7 +570,11 @@ class Expo(Expression):
           return Mull(self.base.getderivative(),Mull(self.exponent,Expo(self.base,self.exponent.getnum()-1)))
       raise NotSupportedException("we dont support x^x  integrals or derivatives|derivative error")
     def tostring(self):
-         return  f"{self.base.tostring()}^{{{self.exponent.tostring()}}}"
+     if self.exponent.equaltype(Constant(1)) and self.exponent.getnum()<0:
+         temp=-1*self.exponent.getnum()
+         temp=Constant(temp)
+         return "(1/("+self.base.tostring()+")^{"+temp.tostring()+"})"
+     return  f"{self.base.tostring()}^{{{self.exponent.tostring()}}}"
     def __str__(self):
         return self.tostring()
     def integral(self):
@@ -581,6 +591,8 @@ class Expo(Expression):
             if self.exponent.firstpart.equaltype(self.exponent.secendpart) and type(self.exponent.firstpart) == Constant:
              merger=self.exponent.firstpart.getnum() + self.exponent.secendpart.getnum()
              return Expo(self.base,Constant(merger)).integral()
+        if equals(self.exponent,Constant(-1)):
+            return Ln(self.base)
         if self.exponent.tostring() != "x" and not isinstance(self.exponent,(Sub,Add,Expo,Mull)):
             return Mull(Constant(1/(self.exponent.getnum()+1)),Expo(Var(),Constant(self.exponent.getnum()+1)))
         if isinstance(self.base, Constant) and isinstance(self.exponent, Var):
@@ -589,6 +601,8 @@ class Expo(Expression):
     def equaltype(self,other):
         return isinstance(other,Expo)
     def getname(self):
+        if equals(self.exponent,Constant(-1)):
+         return "Div"
         return "Expo"
     def simplify(self):
        try:
@@ -625,7 +639,7 @@ class Expo(Expression):
         self.simple=True
         return self
        except RecursionError as e:
-           print("Not implemented yet")
+          pass
 def random_expression(depth=None,Type=None):
     if depth==None:
         depth=random.randint(2,15)
@@ -657,8 +671,89 @@ def random_expression(depth=None,Type=None):
                 left = random_expression(leftdepth)
                 right = random_expression(rightdepth)
                 return Expo(left,right)
+class Div(Expression):
+    def __new__(cls,firstpart,secendpart=None):
+        if secendpart==None and firstpart==0:
+             raise InvalidNumException("Division by zero not allowed")
+        return super().__new__(cls)
+    def __init__(self,firstpart,secendpart=None): #firstpart=numerator , secendpart=denumarator.
+        self.firstpart=firstpart
+        self.secendpart=secendpart
+        if isinstance(firstpart,(int,float)):
+            self.firstpart=Constant(firstpart)
+        if isinstance(secendpart,(int,float)):
+            self.secendpart=Constant(secendpart)
+        if equals(Constant(0),self.secendpart):
+            raise ZeroDivisionError("Division by zero not allowed")
+    def evaluate(self,x_value):
+        if (type(x_value) == int or type(x_value) == float):
+            if self.secendpart.evaluate(x_value) != 0:
+             return self.firstpart.evaluate(x_value)/self.secendpart.evaluate(x_value)
+        else:
+            raise InvalidCombinationException("evaluate doesnt accept non number types or out of bounds")
+    def tostring(self):
+        return f"{self.firstpart.tostring()} \\ {self.secendpart.tostring()}"
+    def __str__(self):
+        return self.tostring()
+    def getname(self):
+        return "Div"
+    def equaltype(self,obj):
+        return isinstance(obj,Div)
+    def getderivative(self):
+        return Div(Sub(Mull(self.firstpart.getderivative(),self.secendpart),Mull(self.firstpart,self.secendpart.getderivative())),Expo(self.secendpart,2))
+    def integral(self):
+        if self.firstpart.equaltype(Constant(1)) and self.secendpart.equaltype(Constant(1)):
+            return Mull(x,self.firstpart.getnum()/self.secendpart.getnum())
+        if self.firstpart.equaltype(Constant(1)) and isinstance(self.secendpart, (Add, Sub, Var)):
+            if self.secendpart.equaltype(Var()):
+                return Mull(self.firstpart,Ln(self.secendpart))
+            if isinstance(self.secendpart.firstpart,(Var,Constant)) and isinstance(self.secendpart.secendpart,(Var,Constant)):
+                return Mull(self.firstpart, Ln(self.secendpart))
+        if equals(self.firstpart.fully_simplify(), self.secendpart.getderivative().fully_simplify()):
+            return Ln(self.secendpart)
+        if self.secendpart.equaltype(Constant(1)):
+            return Mull(Div(self.secendpart),self.firstpart.integral())
+        # cant think of other ways to integrate Div
+class Ln(Expression):
+    def __new__(cls,expression):
+        if expression.equaltype(Expo(1,1)) and (expression.base.equaltype(Constant) or isinstance(expression.base,(int,float))):
+            if expression.base.equaltype(Constant) and ln(expression.base.getnum()) == 1:
+                return expression.exponent
+            if isinstance(expression.base,(int,float)) and ln(expression.base) == 1:
+                return expression.exponent
+        return super().__new__(cls)
+    def __init__(self,expression):
+        self.expression=expression
+        if self.expression.equaltype(Constant(1)) and self.expression.getnum() < 0:
+            raise InvalidNumException("Ln cannot be less than zero")
+    def getname(self):
+        return "Ln"
+    def evaluate(self,x_value):
+        if (type(x_value) == int or type(x_value) == float):
+            if self.expression.evaluate(x_value)>0:
+             return ln(self.expression.evaluate(x_value))
+        else:
+            raise InvalidCombinationException("evaluate doesnt accept non number types or out of bounds")
+    def equaltype(self,obj):
+        return isinstance(obj,Ln)
+    def getderivative(self):
+        return Div(self.expression.getderivative(),self.expression)
+    def tostring(self):
+        return f"Ln({self.expression})"
+    def __str__(self):
+        return self.tostring()
+    def integral(self):
+        if isinstance(self.expression,Constant):
+            return Mull(x,Ln(self.expression))
+        if isinstance(self.expression,(Var)):
+            return Sub(Mull(self.expression,Ln(self.expression)),self.expression)
+        if isinstance(self.expression,(Add,Sub,Mull)) and isinstance(self.expression.firstpart,(Var,Constant)) and isinstance(self.expression.secendpart,(Var,Constant)):
+            return Sub(Mull(self.expression,Ln(self.expression)),self.expression)
+        #only simple integrals for Ln(g(x))
 
 #shortcuts
 x = Var()
 e=ePower(1)
+
+
 
