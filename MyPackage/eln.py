@@ -116,6 +116,30 @@ class Expression(ABC):
         ypoint=self.evaluate(xpoint)
         firstpart=Mull(tang_m,Sub(x,xpoint))
         return Add(firstpart.simplify(),ypoint).simplify()
+    def __add__(self, other): #for helping writings
+            return Add(self, other)
+    def __radd__(self, other):
+            return Add(other, self)
+    def __sub__(self, other):
+            return Sub(self, other)
+    def __rsub__(self, other):
+            return Sub(other, self)
+    def __mul__(self, other):
+            return Mull(self, other)
+    def __rmul__(self, other):
+            return Mull(other, self)
+    def __truediv__(self, other):
+            return Div(self, other)
+    def __rtruediv__(self, other):
+            return Div(other, self)
+    def __pow__(self, other):
+            return Expo(self, other)
+    def __rpow__(self, other):
+            return Expo(other, self)
+    def __truediv__(self,other):
+            return Div(self,other)
+    def __rtruediv__(self,other):
+            return Div(other,self)
 class Constant(Expression): #any constant
     def __init__(self,num):
         self.num=num
@@ -773,7 +797,4 @@ class Ln(Expression):
 #shortcuts
 x = Var()
 e=ePower(1)
-func=random_expression(4)
-print(func)
-
 
