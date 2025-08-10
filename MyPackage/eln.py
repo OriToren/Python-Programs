@@ -651,8 +651,8 @@ def random_expression(depth=None,Type=None):
         else:
             return Constant(random.randint(1,30))
     else:
-        type = random.choice(['Add', 'Sub', 'Mull', 'Expo'])
-        if Type in ['Add', 'Sub', 'Mull', 'Expo']:
+        type = random.choice(['Add', 'Sub', 'Mull', 'Expo','Div','Ln'])
+        if Type in ['Add', 'Sub', 'Mull', 'Expo','Div','Ln']:
             type=Type
         leftdepth=random.randint(0,depth-1)
         rightdepth= depth -1 - leftdepth
@@ -671,6 +671,14 @@ def random_expression(depth=None,Type=None):
                 left = random_expression(leftdepth)
                 right = random_expression(rightdepth)
                 return Expo(left,right)
+        if type=='Div':
+            return Div(left,right)
+        if type=='Ln':
+            coin=random.randint(1,2)
+            if coin==1:
+             return Ln(left)
+            if coin==2:
+             return Ln(right)
 class Div(Expression):
     def __new__(cls,firstpart,secendpart=None):
         if secendpart==None and firstpart==0:
@@ -704,15 +712,26 @@ class Div(Expression):
     def integral(self):
         if self.firstpart.equaltype(Constant(1)) and self.secendpart.equaltype(Constant(1)):
             return Mull(x,self.firstpart.getnum()/self.secendpart.getnum())
-        if self.firstpart.equaltype(Constant(1)) and isinstance(self.secendpart, (Add, Sub, Var)):
+        if self.firstpart.equaltype(Constant(1)) and isinstance(self.secendpart, (Add, Sub, Var,Mull)):
             if self.secendpart.equaltype(Var()):
                 return Mull(self.firstpart,Ln(self.secendpart))
-            if isinstance(self.secendpart.firstpart,(Var,Constant)) and isinstance(self.secendpart.secendpart,(Var,Constant)):
-                return Mull(self.firstpart, Ln(self.secendpart))
+            if self.secendpart.equaltype(Mull(1,1)):
+                if  (isinstance(self.secendpart.firstpart,(Constant)) or isinstance(self.secendpart.secendpart,Constant))\
+                        and (self.secendpart.firstpart.equaltype(x) or self.secendpart.secendpart.equaltype(x)):
+                    if self.secendpart.firstpart.equaltype(Constant(1)):
+                        return Mull(self.firstpart.getnum()/self.secendpart.firstpart.getnum(),Ln(x))
+                    else:
+                        return Mull(self.firstpart.getnum()/self.secendpart.secendpart.getnum(),Ln(x))
         if equals(self.firstpart.fully_simplify(), self.secendpart.getderivative().fully_simplify()):
             return Ln(self.secendpart)
+        if equals(Constant(-1),self.secendpart.getderivative().fully_simplify()):
+            return Mull(-1,Ln(self.secendpart))
         if self.secendpart.equaltype(Constant(1)):
             return Mull(Div(self.secendpart),self.firstpart.integral())
+        if self.firstpart.equaltype(Constant(1)) and self.secendpart.simplify().equaltype(Expo(1,1)) and \
+            self.secendpart.simplify().exponent.equaltype(Constant(1)):
+            return Mull(self.firstpart,Expo(self.secendpart.simplify().base,-1*self.secendpart.simplify().exponent.getnum())).integral()
+        raise NotSupportedException("integral not supported")
         # cant think of other ways to integrate Div
 class Ln(Expression):
     def __new__(cls,expression):
@@ -754,6 +773,7 @@ class Ln(Expression):
 #shortcuts
 x = Var()
 e=ePower(1)
-
+func=random_expression(4)
+print(func)
 
 
