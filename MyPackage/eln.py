@@ -136,10 +136,6 @@ class Expression(ABC):
             return Expo(self, other)
     def __rpow__(self, other):
             return Expo(other, self)
-    def __truediv__(self,other):
-            return Div(self,other)
-    def __rtruediv__(self,other):
-            return Div(other,self)
 class Constant(Expression): #any constant
     def __init__(self,num):
         self.num=num
@@ -280,7 +276,7 @@ class Add(Expression):
             return Add(self.firstpart.simplify(),self.secendpart.simplify()).simplify()
         if isinstance(self.secendpart,Constant) and isinstance(self.firstpart,Constant):
             if self.firstpart.getnum()==-self.secendpart.getnum():
-                return 0
+                return Constant(0)
             else:
              return Constant(self.firstpart.getnum()+self.secendpart.getnum())
         if isinstance(self.firstpart,Constant) and equals(self.firstpart,Constant(0)):
@@ -476,6 +472,13 @@ class Sub(Expression):
        try:
         if equals(self.firstpart,self.secendpart):
             return Constant(0)
+        if isinstance(self.firstpart,(Add,Sub)):
+            fp=self.firstpart.firstpart
+            sp=self.firstpart.secendpart
+            if equals(fp,self.secendpart):
+                return sp
+            if equals(sp,self.secendpart):
+                return fp
         if self.firstpart.simple == True and self.secendpart.simple == True:
             if (isinstance(self.firstpart, Mull) and isinstance(self.secendpart, Mull)):
                 fp1 = self.firstpart.firstpart
@@ -563,7 +566,6 @@ class Sub(Expression):
         return self
        except RecursionError as e:
            pass
-
 class Expo(Expression):
     def __init__(self,base,exponent,simple=None):
         self.base=base
@@ -724,7 +726,7 @@ class Div(Expression):
         else:
             raise InvalidCombinationException("evaluate doesnt accept non number types or out of bounds")
     def tostring(self):
-        return f"{self.firstpart.tostring()} \\ {self.secendpart.tostring()}"
+        return f"{self.firstpart.tostring()} / {self.secendpart.tostring()}"
     def __str__(self):
         return self.tostring()
     def getname(self):
@@ -797,4 +799,3 @@ class Ln(Expression):
 #shortcuts
 x = Var()
 e=ePower(1)
-
