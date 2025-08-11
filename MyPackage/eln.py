@@ -666,6 +666,8 @@ class Expo(Expression):
             return Expo(self.base.simplify(),self.exponent).simplify()
         if isinstance(self.base,(Sub,Add,Mull,Expo)) and isinstance(self.exponent,(Sub,Add,Mull,Expo)) and self.simple==False:
             return  Expo(self.base.simplify(),self.exponent.simplify()).simplify()
+        if not self.exponent.simple:
+            return Expo(self.base,self.exponent.simplify())
         self.simple=True
         return self
        except RecursionError as e:
@@ -765,7 +767,7 @@ class Div(Expression):
             return Mull(self.firstpart,Expo(self.secendpart.simplify().base,-1*self.secendpart.simplify().exponent.getnum())).integral()
         raise NotSupportedException("integral not supported")
     def simplify(self):
-        if equals(self.secendpart.fully_simplify(),Constant(0)):
+        if equals(self.secendpart.simplify(),Constant(0)):
             raise ZeroDivisionError("Division by zero not allowed")
         if equals(self.firstpart,self.secendpart):
             return Constant(1)
@@ -780,6 +782,9 @@ class Div(Expression):
         if equals(self.firstpart,Var()) and self.secendpart.equaltype(Expo(1,1)) and self.secendpart.base.equaltype(Var()) and \
             self.secendpart.exponent.equaltype(Constant(1)):
             return Div(1,Expo(self.secendpart.base,self.secendpart.exponent.getnum()-1))
+        if equals(self.secendpart,Var()) and self.firstpart.equaltype(Expo(1,1)) and self.firstpart.base.equaltype(Var()) and \
+            self.firstpart.exponent.equaltype(Constant(1)):
+            return Expo(self.firstpart.base,self.firstpart.exponent.getnum()-1)
         if isinstance(self.firstpart,(Mull)) and isinstance(self.secendpart,(Mull)):
             fp1=self.firstpart.firstpart
             sp1=self.firstpart.secendpart
@@ -788,11 +793,11 @@ class Div(Expression):
             if equals(fp1,fp2):
                 return Div(sp1,sp2).simplify()
             if equals(fp1,sp2):
-                return Div(sp1,fp2)
+                return Div(sp1,fp2).simplify()
             if equals(sp1,fp2):
-                return Div(fp1,sp2)
+                return Div(fp1,sp2).simplify()
             if equals(sp1,sp2):
-                return Div(fp1,fp2)
+                return Div(fp1,fp2).simplify()
         if  isinstance(self.firstpart,(Mull)):
             fp=self.firstpart.firstpart
             sp=self.firstpart.secendpart
@@ -810,6 +815,8 @@ class Div(Expression):
         if self.firstpart.equaltype(self.secendpart) and self.firstpart.equaltype(Expo(1,1)):
             if equals(self.firstpart.base,self.secendpart.base):
                 return Expo(self.firstpart.base,Sub(self.firstpart.exponent,self.secendpart.exponent).simplify())
+        if self.firstpart.simple==True and self.secendpart.simple==True:
+            self.simple=True
         if (isinstance(self.firstpart, (Expo, Mull, Add, Sub, Div, Ln)) or isinstance(self.secendpart, (
         Expo, Mull, Add, Sub, Div, Ln))) and self.simple == False:
             if (isinstance(self.firstpart, (Expo, Mull, Add, Sub, Div, Ln))):
@@ -878,5 +885,5 @@ class Ln(Expression):
 #shortcuts
 x = Var()
 e=ePower(1)
-func=x**3/x**1
+func=random_expression(4)
 print(func.simplify())
