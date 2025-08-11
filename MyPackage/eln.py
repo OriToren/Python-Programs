@@ -714,7 +714,7 @@ class Div(Expression):
         if secendpart==None and firstpart==0:
              raise InvalidNumException("Division by zero not allowed")
         return super().__new__(cls)
-    def __init__(self,firstpart,secendpart=None): #firstpart=numerator , secendpart=denumarator.
+    def __init__(self,firstpart,secendpart=None,simple=None): #firstpart=numerator , secendpart=denumarator.
         self.firstpart=firstpart
         self.secendpart=secendpart
         if isinstance(firstpart,(int,float)):
@@ -723,6 +723,8 @@ class Div(Expression):
             self.secendpart=Constant(secendpart)
         if equals(Constant(0),self.secendpart):
             raise ZeroDivisionError("Division by zero not allowed")
+        if simple==None:
+            self.simple=False
     def evaluate(self,x_value):
         if (type(x_value) == int or type(x_value) == float):
             if self.secendpart.evaluate(x_value) != 0:
@@ -826,10 +828,12 @@ class Ln(Expression):
             if isinstance(expression.base,(int,float)) and ln(expression.base) == 1:
                 return expression.exponent
         return super().__new__(cls)
-    def __init__(self,expression):
+    def __init__(self,expression,simple=None):
         self.expression=expression
         if self.expression.equaltype(Constant(1)) and self.expression.getnum() < 0:
             raise InvalidNumException("Ln cannot be less than zero")
+        if simple==None:
+             self.simple=False
     def getname(self):
         return "Ln"
     def evaluate(self,x_value):
@@ -874,3 +878,5 @@ class Ln(Expression):
 #shortcuts
 x = Var()
 e=ePower(1)
+func=x**3/x**1
+print(func.simplify())
