@@ -524,6 +524,8 @@ def mullFunc(a: float, b: float = None, c: float = None,x:float=None):
 """
 Thank you for reading and potentially using my library in the future!!
 """
-func=(1,2,1)
+func1=(-3,-3,15)
+func2=(1,-2,-2)
+print(Intersection(func1,func2))
 
 

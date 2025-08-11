@@ -116,6 +116,10 @@ class Expression(ABC):
         ypoint=self.evaluate(xpoint)
         firstpart=Mull(tang_m,Sub(x,xpoint))
         return Add(firstpart.simplify(),ypoint).simplify()
+    def isprimitive(self):
+        if isinstance(self,(Var,Constant)):
+            return True
+        return False
     def __add__(self, other): #for helping writings
             return Add(self, other)
     def __radd__(self, other):
@@ -758,6 +762,61 @@ class Div(Expression):
             self.secendpart.simplify().exponent.equaltype(Constant(1)):
             return Mull(self.firstpart,Expo(self.secendpart.simplify().base,-1*self.secendpart.simplify().exponent.getnum())).integral()
         raise NotSupportedException("integral not supported")
+    def simplify(self):
+        if equals(self.secendpart.fully_simplify(),Constant(0)):
+            raise ZeroDivisionError("Division by zero not allowed")
+        if equals(self.firstpart,self.secendpart):
+            return Constant(1)
+        if self.firstpart.equaltype(Constant(1)) and self.secendpart.equaltype(Constant(1)):
+            return Constant(self.firstpart.getnum()/self.secendpart.getnum())
+        if equals(self.firstpart,Constant(0)):
+            return Constant(0)
+        if equals(self.secendpart,Constant(1)):
+            return self.firstpart
+        if equals(self.secendpart,Constant(-1)):
+            return Mull(-1,self.firstpart)
+        if equals(self.firstpart,Var()) and self.secendpart.equaltype(Expo(1,1)) and self.secendpart.base.equaltype(Var()) and \
+            self.secendpart.exponent.equaltype(Constant(1)):
+            return Div(1,Expo(self.secendpart.base,self.secendpart.exponent.getnum()-1))
+        if isinstance(self.firstpart,(Mull)) and isinstance(self.secendpart,(Mull)):
+            fp1=self.firstpart.firstpart
+            sp1=self.firstpart.secendpart
+            fp2=self.secendpart.firstpart
+            sp2=self.secendpart.secendpart
+            if equals(fp1,fp2):
+                return Div(sp1,sp2).simplify()
+            if equals(fp1,sp2):
+                return Div(sp1,fp2)
+            if equals(sp1,fp2):
+                return Div(fp1,sp2)
+            if equals(sp1,sp2):
+                return Div(fp1,fp2)
+        if  isinstance(self.firstpart,(Mull)):
+            fp=self.firstpart.firstpart
+            sp=self.firstpart.secendpart
+            if equals(fp,self.secendpart):
+                return sp
+            if equals(sp,self.secendpart):
+                return fp
+        if  isinstance(self.secendpart,(Mull)):
+            fp=self.secendpart.firstpart
+            sp=self.secendpart.secendpart
+            if equals(fp,self.firstpart):
+                return Div(1,sp)
+            if equals(sp,self.firstpart):
+                return Div(1,fp)
+        if self.firstpart.equaltype(self.secendpart) and self.firstpart.equaltype(Expo(1,1)):
+            if equals(self.firstpart.base,self.secendpart.base):
+                return Expo(self.firstpart.base,Sub(self.firstpart.exponent,self.secendpart.exponent).simplify())
+        if (isinstance(self.firstpart, (Expo, Mull, Add, Sub, Div, Ln)) or isinstance(self.secendpart, (
+        Expo, Mull, Add, Sub, Div, Ln))) and self.simple == False:
+            if (isinstance(self.firstpart, (Expo, Mull, Add, Sub, Div, Ln))):
+                self.firstpart = self.firstpart.simplify()
+            if (isinstance(self.secendpart, (Expo, Mull, Add, Sub, Div, Ln))):
+                self.secendpart = self.secendpart.simplify()
+            return Div(self.firstpart, self.secendpart).simplify()
+        self.simple=True
+        return self
         # cant think of other ways to integrate Div
 class Ln(Expression):
     def __new__(cls,expression):
@@ -795,6 +854,22 @@ class Ln(Expression):
         if isinstance(self.expression,(Add,Sub,Mull)) and isinstance(self.expression.firstpart,(Var,Constant)) and isinstance(self.expression.secendpart,(Var,Constant)):
             return Sub(Mull(self.expression,Ln(self.expression)),self.expression)
         #only simple integrals for Ln(g(x))
+    def simplify(self):
+            if self.expression.equaltype(Constant(1)):
+                return Constant(ln(self.expression.getnum()))
+            if self.expression.equaltype(Expo(1, 1)) and self.expression.base.equaltype(Constant(1)) and ln(
+                    self.expression.base.getnum()) == 1:
+                return self.expression.exponent.simplify()
+            if self.expression.equaltype(Expo(1, 1)):
+                return Mull(self.expression.exponent, Ln(self.expression.base.simplify()))
+            if self.expression.equaltype(Mull(1, 1)):
+                return Add(Ln(self.expression.firstpart), Ln(self.expression.secendpart))
+            if self.expression.equaltype(Div(1)):
+                return Sub(Ln(self.expression.firstpart), Ln(self.expression.secendpart))
+            if self.expression.simple == False:
+                return Ln(self.expression.simplify())
+            self.simple = True
+            return self
 
 #shortcuts
 x = Var()
