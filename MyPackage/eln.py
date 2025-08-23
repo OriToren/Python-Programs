@@ -120,6 +120,32 @@ class Expression(ABC):
         if isinstance(self,(Var,Constant)):
             return True
         return False
+    def info(self):
+       try:
+        return {"Function":self,
+                "Function Derivative":self.getderivative(),
+                "Function Integral":self.integral(),
+                "y intercept":self.y_inter()}
+       except AttributeError as e:
+          NotImplemented
+  #  def sinfo(self):
+     #   try:
+       #     return {"Function":self,
+      #              "Function Derivative":self.getderivative().simplify(),
+        #            "Function Integral":self.integral().simplify(),
+        #            "y intercept":self.y_inter()}
+    #    except Exception:
+       #     print("Simplifed version not implemented. here is the normal version:")
+       #    return self.info()
+    def printinfo(self):
+       dic=self.info()
+       for key,value in dic.items():
+            print(key,value)
+
+    #def printsinfo(self):
+     #   dic = self.sinfo()
+      #  for key, value in dic.items():
+       #     print(key, value)
     def __add__(self, other): #for helping writings
             return Add(self, other)
     def __radd__(self, other):
@@ -221,7 +247,7 @@ class Add(Expression):
        try:
         if equals(self.firstpart,self.secendpart):
             return Mull(2,self.firstpart)
-        if self.firstpart.simple==True and self.secendpart.simple==True:
+        if self.firstpart.simple==True and self.secendpart.simple==True  or (self.getname()=="Ln" and self.simple==True):
           if (isinstance(self.firstpart, Mull) and isinstance(self.secendpart, Mull)):
                 fp1 = self.firstpart.firstpart
                 fp2 = self.firstpart.secendpart
@@ -301,7 +327,7 @@ class Add(Expression):
         self.simple=True
         return self
        except RecursionError as e:
-        pass
+        return self
 class Mull(Expression):
     def __init__(self,firstpart,secendpart,simple=None):
         self.firstpart=firstpart
@@ -443,7 +469,7 @@ class Mull(Expression):
         self.simple=True
         return self
        except RecursionError as e:
-           pass
+           return self
 class Sub(Expression):
     def __init__(self,firstpart,secendpart,simple=None):
         self.firstpart=firstpart
@@ -483,7 +509,7 @@ class Sub(Expression):
                 return sp
             if equals(sp,self.secendpart):
                 return fp
-        if self.firstpart.simple == True and self.secendpart.simple == True:
+        if self.firstpart.simple == True and self.secendpart.simple == True or (self.getname()=="Ln" and self.simple==True):
             if (isinstance(self.firstpart, Mull) and isinstance(self.secendpart, Mull)):
                 fp1 = self.firstpart.firstpart
                 fp2 = self.firstpart.secendpart
@@ -569,7 +595,7 @@ class Sub(Expression):
         self.simple = True
         return self
        except RecursionError as e:
-           pass
+           return self
 class Expo(Expression):
     def __init__(self,base,exponent,simple=None):
         self.base=base
@@ -671,7 +697,7 @@ class Expo(Expression):
         self.simple=True
         return self
        except RecursionError as e:
-          pass
+          return self
 def random_expression(depth=None,Type=None):
     if depth==None:
         depth=random.randint(2,15)
@@ -734,7 +760,7 @@ class Div(Expression):
         else:
             raise InvalidCombinationException("evaluate doesnt accept non number types or out of bounds")
     def tostring(self):
-        return f"{self.firstpart.tostring()} / {self.secendpart.tostring()}"
+        return f"({self.firstpart.tostring()} / {self.secendpart.tostring()})"
     def __str__(self):
         return self.tostring()
     def getname(self):
@@ -767,6 +793,7 @@ class Div(Expression):
             return Mull(self.firstpart,Expo(self.secendpart.simplify().base,-1*self.secendpart.simplify().exponent.getnum())).integral()
         raise NotSupportedException("integral not supported")
     def simplify(self):
+       try:
         if equals(self.secendpart.simplify(),Constant(0)):
             raise ZeroDivisionError("Division by zero not allowed")
         if equals(self.firstpart,self.secendpart):
@@ -827,6 +854,8 @@ class Div(Expression):
         self.simple=True
         return self
         # cant think of other ways to integrate Div
+       except (RecursionError):
+           return self
 class Ln(Expression):
     def __new__(cls,expression):
         if expression.equaltype(Expo(1,1)) and (expression.base.equaltype(Constant) or isinstance(expression.base,(int,float))):
@@ -866,6 +895,7 @@ class Ln(Expression):
             return Sub(Mull(self.expression,Ln(self.expression)),self.expression)
         #only simple integrals for Ln(g(x))
     def simplify(self):
+           try:
             if self.expression.equaltype(Constant(1)):
                 return Constant(ln(self.expression.getnum()))
             if self.expression.equaltype(Expo(1, 1)) and self.expression.base.equaltype(Constant(1)) and ln(
@@ -881,9 +911,10 @@ class Ln(Expression):
                 return Ln(self.expression.simplify())
             self.simple = True
             return self
-
+           except RecursionError:
+               return self
+ # need to add div simplify for a**x / b**x = (a/b)**x
 #shortcuts
 x = Var()
 e=ePower(1)
-func=random_expression(4)
-print(func.simplify())
+func=x*(x-x)+x*(2*x-x)
