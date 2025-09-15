@@ -18,7 +18,10 @@ def equals(obj1,obj2):
      if isinstance(obj1,Var) :
         return True
      if isinstance(obj1,Add) or isinstance(obj1,Sub) or isinstance(obj1,Mull):
-         return equals(obj1.firstpart,obj2.firstpart) and equals(obj1.secendpart,obj2.secendpart)
+         if isinstance(obj1,Sub):
+            return equals(obj1.firstpart,obj2.firstpart) and equals(obj1.secendpart,obj2.secendpart)
+         else:
+            return (equals(obj1.firstpart,obj2.firstpart) and equals(obj1.secendpart,obj2.secendpart))  or (equals(obj1.firstpart,obj2.secendpart) and equals(obj1.secendpart,obj2.firstpart))
      if isinstance(obj1,Expo):
          return equals(obj1.base,obj2.base) and equals(obj1.exponent,obj2.exponent)
     return False
