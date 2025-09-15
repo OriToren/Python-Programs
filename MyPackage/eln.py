@@ -97,9 +97,10 @@ class Expression(ABC):
     def simplify(self):
         pass
     def fully_simplify(self):
-     while not self.simple:
-        self=self.simplify()
-     return self
+        func=self
+        while not func.simple:
+            func=func.simplify()
+        return func
     def isodd(self):
         if self.defintegral(-1,1) == 0 and self.defintegral(-2.654346,2.654346)==0:
             return True
@@ -416,6 +417,24 @@ class Mull(Expression):
             return Expo(Mull(self.firstpart.base,self.secendpart.base),self.firstpart.exponent)
         if (isinstance(self.firstpart, Constant) and self.firstpart.getnum() == 0) or  (isinstance(self.secendpart, Constant) and self.secendpart.getnum() == 0):
             return Constant(0)
+        if isinstance(self.firstpart, Mull) and (
+                self.firstpart.firstpart.equaltype(Co) or self.firstpart.secendpart.equaltype(Co) and isinstance(
+                self.secendpart, Constant)):
+            fp = self.firstpart.firstpart
+            sp = self.firstpart.secendpart
+            if fp.equaltype(Co):
+                return Mull(self.firstpart.secendpart.simplify(), Mull(self.firstpart.firstpart, self.secendpart).simplify())
+            elif sp.equaltype(Co):
+                return Mull(self.firstpart.firstpart.simplify(), Mull(self.firstpart.secendpart, self.secendpart).simplify())
+        if isinstance(self.secendpart, Mull) and (
+                self.secendpart.firstpart.equaltype(Co) or self.secendpart.secendpart.equaltype(Co) and isinstance(
+                self.firstpart, Constant)):
+            fp = self.secendpart.firstpart
+            sp = self.secendpart.secendpart
+            if fp.equaltype(Co):
+                return Mull(self.secendpart.secendpart.simplify(), Mull(self.secendpart.firstpart, self.firstpart).simplify())
+            elif sp.equaltype(Co):
+                return Mull(self.secendpart.firstpart.simplify(), Mull(self.secendpart.secendpart, self.firstpart).simplify())
         if equals(self.firstpart,Constant(1)):
             return self.secendpart
         if equals(self.secendpart,Constant(1)):
@@ -918,4 +937,4 @@ class Ln(Expression):
 x = Var()
 e=ePower(1)
 pie=3.1415926535
-func =(x**2)-1
+Co=Constant(0)
