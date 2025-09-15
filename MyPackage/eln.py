@@ -892,7 +892,7 @@ class Ln(Expression):
         if isinstance(self.expression,(Var)):
             return Sub(Mull(self.expression,Ln(self.expression)),self.expression)
         if isinstance(self.expression,(Add,Sub,Mull)) and isinstance(self.expression.firstpart,(Var,Constant)) and isinstance(self.expression.secendpart,(Var,Constant)):
-            return Sub(Mull(self.expression,Ln(self.expression)),self.expression)
+            return Sub(Mull(x,Ln(self.expression)),Mull(x,self.getderivative()).integral())
         #only simple integrals for Ln(g(x))
     def simplify(self):
            try:
@@ -918,3 +918,4 @@ class Ln(Expression):
 x = Var()
 e=ePower(1)
 pie=3.1415926535
+func =(x**2)-1
