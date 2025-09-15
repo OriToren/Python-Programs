@@ -128,24 +128,13 @@ class Expression(ABC):
                 "y intercept":self.y_inter()}
        except AttributeError as e:
           NotImplemented
-  #  def sinfo(self):
-     #   try:
-       #     return {"Function":self,
-      #              "Function Derivative":self.getderivative().simplify(),
-        #            "Function Integral":self.integral().simplify(),
-        #            "y intercept":self.y_inter()}
-    #    except Exception:
-       #     print("Simplifed version not implemented. here is the normal version:")
-       #    return self.info()
     def printinfo(self):
+      try:
        dic=self.info()
        for key,value in dic.items():
             print(key,value)
-
-    #def printsinfo(self):
-     #   dic = self.sinfo()
-      #  for key, value in dic.items():
-       #     print(key, value)
+      except AttributeError as e:
+          NotImplemented
     def __add__(self, other): #for helping writings
             return Add(self, other)
     def __radd__(self, other):
@@ -177,7 +166,10 @@ class Constant(Expression): #any constant
     def getderivative(self):
         return Constant(0)
     def tostring(self):
+        if equals(Constant(e),self):
+            return "e"
         return str(self.num)
+
     def __str__(self):
         return self.tostring()
     def add(self,num):
@@ -247,6 +239,10 @@ class Add(Expression):
        try:
         if equals(self.firstpart,self.secendpart):
             return Mull(2,self.firstpart)
+        if equals(self.firstpart,Constant(0)):
+            return self.secendpart
+        if equals(self.secendpart,Constant(0)):
+            return self.firstpart
         if self.firstpart.simple==True and self.secendpart.simple==True  or (self.getname()=="Ln" and self.simple==True):
           if (isinstance(self.firstpart, Mull) and isinstance(self.secendpart, Mull)):
                 fp1 = self.firstpart.firstpart
@@ -858,6 +854,8 @@ class Div(Expression):
            return self
 class Ln(Expression):
     def __new__(cls,expression):
+        if isinstance(expression,(float,int)):
+            expression=Constant(expression)
         if expression.equaltype(Expo(1,1)) and (expression.base.equaltype(Constant) or isinstance(expression.base,(int,float))):
             if expression.base.equaltype(Constant) and ln(expression.base.getnum()) == 1:
                 return expression.exponent
@@ -866,6 +864,8 @@ class Ln(Expression):
         return super().__new__(cls)
     def __init__(self,expression,simple=None):
         self.expression=expression
+        if isinstance(expression,(float,int)):
+            self.expression=Constant(expression)
         if self.expression.equaltype(Constant(1)) and self.expression.getnum() < 0:
             raise InvalidNumException("Ln cannot be less than zero")
         if simple==None:
@@ -917,4 +917,4 @@ class Ln(Expression):
 #shortcuts
 x = Var()
 e=ePower(1)
-func=x*(x-x)+x*(2*x-x)
+pie=3.1415926535
