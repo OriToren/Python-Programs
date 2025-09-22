@@ -101,8 +101,18 @@ class Expression(ABC):
         pass
     def fully_simplify(self):
         func=self
-        while not func.simple:
-            func=func.simplify()
+        for i in range(10):
+            func=self.simplify()
+            if func.isprimitive() == False:
+                if isinstance(func,(Mull,Add,Sub,Div)):
+                    func.firstpart=func.firstpart.simplify()
+                    func.secendpart=func.secendpart.simplify()
+                if isinstance(func,Expo):
+                    self.base=self.base.simplify()
+                    self.exponent=self.exponent.simplify()
+            if func.simple is True and i>4:
+                break
+        func=func.simplify()
         return func
     def isodd(self):
         if self.defintegral(-1,1) == 0 and self.defintegral(-2.654346,2.654346)==0:
@@ -941,3 +951,6 @@ x = Var()
 e=ePower(1)
 pie=3.1415926535
 Co=Constant(0)
+func=(x**2 * x**3)
+print(func.simplify())
+print(func.fully_simplify())
